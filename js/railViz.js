@@ -23,15 +23,17 @@ RailApp.prototype.update = function() {
     if(this.animating) {
         var xPos = this.engineSprite.position.x;
         var zPos = this.engineSprite.position.z;
-        delta = zPos > 0 ? delta : -delta;
-        this.engineSprite.position.x += (delta * this.movementPerSecond);
+        this.engineSprite.position.x += (delta * this.movementPerSecond * this.sector);
         if(this.engineSprite.position.x > this.engineX) {
             this.engineSprite.position.x = this.engineX;
+            this.sector = -1;
+        }
+        if(this.engineSprite.position.x < -this.engineX) {
+            this.engineSprite.position.x = -this.engineX;
+            this.sector = 1;
         }
         this.engineSprite.position.z = Math.sqrt(this.b2 * (1 - ((this.engineSprite.position.x * this.engineSprite.position.x)/this.a2)));
-        if(delta < 0) {
-            this.engineSprite.position.z *= -1;
-        }
+        this.engineSprite.position.z *= this.sector;
     }
     BaseApp.prototype.update.call(this);
 };
@@ -68,6 +70,7 @@ RailApp.prototype.createScene = function() {
     this.a2 = this.engineX * this.engineX;
     this.b2 = this.engineZ * this.engineZ;
     this.movementPerSecond = 10;
+    this.sector = 1;
     this.scene.add(this.engineSprite);
 };
 
