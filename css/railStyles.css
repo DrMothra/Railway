@@ -1,1 +1,10 @@
 /* Styles for railway visualisations */
+.displayInfo {
+    position: absolute;
+    color: #7fa5ff;
+    font-size: 1.3vw;
+}
+#controls {
+    bottom: 5%;
+    left: 48.25%;
+}

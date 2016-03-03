@@ -39,6 +39,7 @@ RailApp.prototype.init = function(container) {
         { stationName: "OXCOUT", time: 24, delay: 0 }
     ];
 
+    this.tripTime = this.data[this.data.length-1].time;
     this.animating = false;
 };
 
@@ -46,19 +47,31 @@ RailApp.prototype.update = function() {
     var delta = this.clock.getDelta();
 
     if(this.animating) {
-        var xPos = this.engineSprite.position.x;
-        var zPos = this.engineSprite.position.z;
-        this.engineSprite.position.x += (delta * this.movementPerSecond * this.sector);
-        if(this.engineSprite.position.x > this.engineX) {
-            this.engineSprite.position.x = this.engineX;
-            this.sector = -1;
+        this.currentTime += delta;
+        this.realTime += (delta * this.realTimeInc);
+        //DEBUG
+        //console.log("Real time = ", this.realTime);
+
+        if(this.currentTime >= this.timeToNextStop) {
+            this.currentTime = this.timeToNextStop;
+            if(++this.currentStop >= (this.data.length-1)) {
+                //DEBUG
+                //console.log("Finished");
+                this.animating = false;
+                return;
+            }
+
+            //DEBUG
+            //console.log("Arrived at stop ", this.currentStop);
+
+            this.timeToNextStop += this.interStopTime;
+            this.realTimeToNextStop = this.data[this.currentStop+1].time - this.data[this.currentStop].time;
+            this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
         }
-        if(this.engineSprite.position.x < -this.engineX) {
-            this.engineSprite.position.x = -this.engineX;
-            this.sector = 1;
-        }
-        this.engineSprite.position.z = Math.sqrt(this.a2 - (this.engineSprite.position.x * this.engineSprite.position.x));
-        this.engineSprite.position.z *= this.sector;
+        var angle = (this.currentTime/this.roundTripTime) * 2 * Math.PI;
+        var xPos = Math.sin(angle)*this.trainRadius;
+        var zPos = Math.cos(angle)*this.trainRadius;
+        this.engineSprite.position.set(xPos, 5, zPos);
     }
     BaseApp.prototype.update.call(this);
 };
@@ -89,7 +102,6 @@ RailApp.prototype.createScene = function() {
     this.engineZ = 124.5;
     this.a2 = this.engineX * this.engineX;
     this.b2 = this.engineZ * this.engineZ;
-    this.movementPerSecond = 10;
     this.sector = 1;
 
     var textureLoader = new THREE.TextureLoader();
@@ -104,7 +116,8 @@ RailApp.prototype.createScene = function() {
 
     var pointMat = new THREE.SpriteMaterial( {map: pointTex} );
     var numPointers = this.data.length;
-    var pointerAngle = 0, pointerRadius = 220, angleInc = (2 * Math.PI) / numPointers;
+    var pointerAngle = 0, angleInc = (2 * Math.PI) / numPointers, pointerRadius = 220;
+    var circumference = 2 * Math.PI * pointerRadius;
 
     this.pointerSprites = [];
     for(var i=0; i<numPointers; ++i, pointerAngle += angleInc) {
@@ -114,9 +127,24 @@ RailApp.prototype.createScene = function() {
         this.pointerSprites[i].position.set(Math.sin(pointerAngle)*pointerRadius, 15, Math.cos(pointerAngle)*pointerRadius);
     }
 
+    this.trainRadius = 230;
+    this.roundTripTime = this.tripTime * 2;
+    this.interStopDistance = circumference / numPointers;
+    this.movementPerSecond = circumference / this.roundTripTime;
+    this.interStopTime = this.interStopDistance / this.movementPerSecond;
+    this.currentTime = 0;
+    this.currentStop = 0;
+    this.realTime = 0;
+    this.timeToNextStop = this.interStopTime;
+    this.realTimeToNextStop = this.data[this.currentStop+1].time;
+    this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
     var labelPos = new THREE.Vector3(0, 25, 220), labelScale = new THREE.Vector3(30, 30, 1);
     var label = spriteManager.create("D10837", labelPos, labelScale, 32, 1, true, false);
     this.scene.add(label);
+};
+
+RailApp.prototype.startStopAnimation = function(status) {
+    this.animating = status;
 };
 
 RailApp.prototype.createGUI = function() {
@@ -137,6 +165,12 @@ $(document).ready(function() {
     app.init(container);
     app.createScene();
     app.createGUI();
+
+    var status = false;
+    $('#controls').on("click", function() {
+        status = !status;
+        app.startStopAnimation(status);
+    });
 
     app.run();
 });
