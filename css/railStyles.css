@@ -18,6 +18,8 @@
 }
 .hoverInfo {
     position: absolute;
+    color: #4b91df;
+    font-size: 1.5vw;
 }
 .displayInfo {
     position: absolute;
@@ -26,11 +28,14 @@
     font-size: 1.8vw;
 }
 #controls {
-    top: 7.5%;
+    padding: 1%;
+    border: 1px solid white;
+    border-radius: 10px;
+    top: 4%;
     left: 4%;
 }
 #controls button {
-    margin-bottom: 10%;
+    margin-bottom: 15%;
 }
 #timeDateOutput {
     background: #323232;
@@ -38,4 +43,8 @@
     border-radius: 10px;
     top: 4%;
     right: 4%;
+}
+#version {
+    left: 3%;
+    bottom: 2%;
 }

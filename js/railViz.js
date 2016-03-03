@@ -2,8 +2,7 @@
  * Created by DrTone on 22/02/2016.
  */
 
-
-
+var ROT_INC = Math.PI/32;
 
 function RailApp() {
     BaseApp.call(this);
@@ -98,6 +97,9 @@ RailApp.prototype.createScene = function() {
     points.push(new THREE.Vector3(-halfWidth, 0, 0));
     points.push(new THREE.Vector3(0, 0, 0));
 
+    this.railGroup = new THREE.Object3D();
+    this.railGroup.name = "railway";
+
     var innerRad = 225, outerRad = 240, segments = 30;
     var ringGeom = new THREE.RingGeometry(innerRad, outerRad, segments);
     var ringMat = new THREE.MeshBasicMaterial( {color: 0x373737} );
@@ -105,7 +107,7 @@ RailApp.prototype.createScene = function() {
     //var yScaleFactor = 0.55;
     //ringMesh.scale.y = yScaleFactor;
     ringMesh.rotation.x = -Math.PI/2;
-    this.scene.add(ringMesh);
+    this.railGroup.add(ringMesh);
 
     //Scene parameters
     this.engineX = 230;
@@ -120,13 +122,13 @@ RailApp.prototype.createScene = function() {
 
     var trainMat = new THREE.SpriteMaterial( {map: trainTex} );
     this.engineSprite = new THREE.Sprite(trainMat);
-    this.scene.add(this.engineSprite);
+    this.railGroup.add(this.engineSprite);
     this.engineSprite.scale.set(10, 10, 1);
     this.engineSprite.position.set(0, 5, outerRad - 7.5);
 
     var ghostMat = new THREE.SpriteMaterial( {map: trainTex, opacity: 0.5});
     this.ghostSprite = new THREE.Sprite(ghostMat);
-    this.scene.add(this.ghostSprite);
+    this.railGroup.add(this.ghostSprite);
     this.ghostSprite.scale.set(10, 10, 1);
     this.ghostSprite.position.set(0, 5, this.trainRadius - 7.5);
 
@@ -140,12 +142,12 @@ RailApp.prototype.createScene = function() {
     var label;
     for(var i=0; i<numPointers; ++i, pointerAngle += angleInc) {
         this.pointerSprites.push(new THREE.Sprite(pointMat));
-        this.scene.add(this.pointerSprites[i]);
+        this.railGroup.add(this.pointerSprites[i]);
         this.pointerSprites[i].scale.set(30, 30, 1);
         this.pointerSprites[i].position.set(Math.sin(pointerAngle)*pointerRadius, 15, Math.cos(pointerAngle)*pointerRadius);
         labelPos.set(this.pointerSprites[i].position.x, 25, this.pointerSprites[i].position.z);
         label = spriteManager.create(this.data[i].stationName, labelPos, labelScale, 32, 1, true, false);
-        this.scene.add(label);
+        this.railGroup.add(label);
     }
 
     this.trainRadius = 230;
@@ -168,10 +170,63 @@ RailApp.prototype.createScene = function() {
     var xPos = Math.sin(angle)*this.trainRadius;
     var zPos = Math.cos(angle)*this.trainRadius;
     this.ghostSprite.position.set(xPos, 5, zPos);
+
+    this.scene.add(this.railGroup);
 };
 
-RailApp.prototype.startStopAnimation = function(status) {
-    this.animating = status;
+RailApp.prototype.startStopAnimation = function() {
+    this.animating = !this.animating;
+    $('#startStop').html(this.animating ? "Stop" : "Start");
+};
+
+RailApp.prototype.reset = function() {
+    //Reset everything
+    //Camera
+    this.controls.reset();
+    this.camera.position.set(0, 155, 450 );
+    var lookAt = new THREE.Vector3(0, 0, 0);
+    this.controls.setLookAt(lookAt);
+
+    //Animations
+    this.animating = false;
+    $('#startStop').html("Start");
+
+    //Output
+    $('#hours').html("00");
+    $('#minutes').html("00");
+
+    //Train parameters
+    this.currentTime = 0;
+    this.currentStop = 0;
+    this.realTime = 0;
+    this.timeToNextStop = this.interStopTime;
+    this.realTimeToNextStop = this.data[this.currentStop+1].time;
+    $('#delay').html(this.data[this.currentStop].delay);
+    var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
+    this.delayTime = this.data[this.currentStop].delay;
+    this.delayTimeInc = delay/this.interStopTime;
+
+    //Train positions
+    var angle = (this.currentTime/this.roundTripTime) * 2 * Math.PI;
+    var xPos = Math.sin(angle)*this.trainRadius;
+    var zPos = Math.cos(angle)*this.trainRadius;
+    this.engineSprite.position.set(xPos, 5, zPos);
+    angle = (this.data[this.currentStop].delay/this.roundTripTime) * 2 * Math.PI;
+    xPos = Math.sin(angle)*this.trainRadius;
+    zPos = Math.cos(angle)*this.trainRadius;
+    this.ghostSprite.position.set(xPos, 5, zPos);
+    this.railGroup.rotation.y = 0;
+
+    //Redraw
+    this.renderer.render( this.scene, this.camera );
+};
+
+RailApp.prototype.rotateTrackLeft = function() {
+    this.railGroup.rotation.y += ROT_INC;
+};
+
+RailApp.prototype.rotateTrackRight = function() {
+    this.railGroup.rotation.y -= ROT_INC;
 };
 
 RailApp.prototype.createGUI = function() {
@@ -193,10 +248,20 @@ $(document).ready(function() {
     app.createScene();
     app.createGUI();
 
-    var status = false;
-    $('#controls').on("click", function() {
-        status = !status;
-        app.startStopAnimation(status);
+    $('#startStop').on("click", function() {
+        app.startStopAnimation();
+    });
+
+    $('#reset').on("click", function() {
+        app.reset();
+    });
+
+    $('#rotateLeft').on("click", function() {
+        app.rotateTrackLeft();
+    });
+
+    $('#rotateRight').on("click", function() {
+        app.rotateTrackRight();
     });
 
     app.run();
