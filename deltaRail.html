@@ -22,14 +22,38 @@
 </head>
 <body>
 
-<div id="Stats-output">
+<div id="Stats-output" class="noDisplay">
 </div>
 
 <div id="WebGL-output">
 </div>
 
-<div id="controls" class="displayInfo">
-    <button type="button" class="btn btn-primary">Start</button>
+<div id="controls" class="hoverInfo centred">
+    <div>
+        <button type="button" class="btn btn-primary">Start</button>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary">Reset</button>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary"><</button>
+        <button type="button" class="btn btn-primary">></button>
+    </div>
+
+</div>
+
+<div id="timeDateOutput" class="displayInfo">
+    <div id="date">
+        <span>Date : </span><span>22/10/2015</span>
+    </div>
+
+    <div id="clock">
+        <span>Time : </span><span id="hours">00</span><span>:</span><span id="minutes">00</span>
+    </div>
+
+    <div id="delayOutput">
+        <span>Delay : </span><span id="delay">1</span>
+    </div>
 </div>
 </body>
 </html>

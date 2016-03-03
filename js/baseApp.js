@@ -32,7 +32,7 @@ BaseApp.prototype.init = function(container) {
     this.createControls();
     //this.raycaster = new THREE.Raycaster();
     this.stats = initStats();
-    this.statsShowing = true;
+    this.statsShowing = false;
 
 };
 

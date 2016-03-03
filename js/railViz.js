@@ -49,12 +49,16 @@ RailApp.prototype.update = function() {
     if(this.animating) {
         this.currentTime += delta;
         this.realTime += (delta * this.realTimeInc);
+        this.delayTime += (delta * this.delayTimeInc);
+        $('#minutes').html(this.realTime < 10 ? '0' + Math.floor(this.realTime) : Math.floor(this.realTime));
         //DEBUG
         //console.log("Real time = ", this.realTime);
 
         if(this.currentTime >= this.timeToNextStop) {
             this.currentTime = this.timeToNextStop;
-            if(++this.currentStop >= (this.data.length-1)) {
+            ++this.currentStop;
+            $('#delay').html(this.data[this.currentStop].delay);
+            if(this.currentStop >= (this.data.length-1)) {
                 //DEBUG
                 //console.log("Finished");
                 this.animating = false;
@@ -67,11 +71,17 @@ RailApp.prototype.update = function() {
             this.timeToNextStop += this.interStopTime;
             this.realTimeToNextStop = this.data[this.currentStop+1].time - this.data[this.currentStop].time;
             this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
+            var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
+            this.delayTimeInc = delay/this.interStopTime;
         }
         var angle = (this.currentTime/this.roundTripTime) * 2 * Math.PI;
         var xPos = Math.sin(angle)*this.trainRadius;
         var zPos = Math.cos(angle)*this.trainRadius;
         this.engineSprite.position.set(xPos, 5, zPos);
+        angle = (this.delayTime/this.roundTripTime) * 2 * Math.PI;
+        xPos = Math.sin(angle)*this.trainRadius;
+        zPos = Math.cos(angle)*this.trainRadius;
+        this.ghostSprite.position.set(xPos, 5, zPos);
     }
     BaseApp.prototype.update.call(this);
 };
@@ -114,17 +124,28 @@ RailApp.prototype.createScene = function() {
     this.engineSprite.scale.set(10, 10, 1);
     this.engineSprite.position.set(0, 5, outerRad - 7.5);
 
+    var ghostMat = new THREE.SpriteMaterial( {map: trainTex, opacity: 0.5});
+    this.ghostSprite = new THREE.Sprite(ghostMat);
+    this.scene.add(this.ghostSprite);
+    this.ghostSprite.scale.set(10, 10, 1);
+    this.ghostSprite.position.set(0, 5, this.trainRadius - 7.5);
+
     var pointMat = new THREE.SpriteMaterial( {map: pointTex} );
     var numPointers = this.data.length;
     var pointerAngle = 0, angleInc = (2 * Math.PI) / numPointers, pointerRadius = 220;
     var circumference = 2 * Math.PI * pointerRadius;
 
     this.pointerSprites = [];
+    var labelPos = new THREE.Vector3(), labelScale = new THREE.Vector3(30, 30, 1);
+    var label;
     for(var i=0; i<numPointers; ++i, pointerAngle += angleInc) {
         this.pointerSprites.push(new THREE.Sprite(pointMat));
         this.scene.add(this.pointerSprites[i]);
         this.pointerSprites[i].scale.set(30, 30, 1);
         this.pointerSprites[i].position.set(Math.sin(pointerAngle)*pointerRadius, 15, Math.cos(pointerAngle)*pointerRadius);
+        labelPos.set(this.pointerSprites[i].position.x, 25, this.pointerSprites[i].position.z);
+        label = spriteManager.create(this.data[i].stationName, labelPos, labelScale, 32, 1, true, false);
+        this.scene.add(label);
     }
 
     this.trainRadius = 230;
@@ -138,9 +159,15 @@ RailApp.prototype.createScene = function() {
     this.timeToNextStop = this.interStopTime;
     this.realTimeToNextStop = this.data[this.currentStop+1].time;
     this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
-    var labelPos = new THREE.Vector3(0, 25, 220), labelScale = new THREE.Vector3(30, 30, 1);
-    var label = spriteManager.create("D10837", labelPos, labelScale, 32, 1, true, false);
-    this.scene.add(label);
+    $('#delay').html(this.data[this.currentStop].delay);
+    //Ghost engine
+    var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
+    this.delayTime = this.data[this.currentStop].delay;
+    this.delayTimeInc = delay/this.interStopTime;
+    var angle = (this.data[this.currentStop].delay/this.roundTripTime) * 2 * Math.PI;
+    var xPos = Math.sin(angle)*this.trainRadius;
+    var zPos = Math.cos(angle)*this.trainRadius;
+    this.ghostSprite.position.set(xPos, 5, zPos);
 };
 
 RailApp.prototype.startStopAnimation = function(status) {
