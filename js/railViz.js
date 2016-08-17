@@ -40,6 +40,9 @@ RailApp.prototype.init = function(container) {
 
     this.tripTime = this.data[this.data.length-1].time;
     this.animating = false;
+
+    this.binormal = new THREE.Vector3();
+    this.normal = new THREE.Vector3();
 };
 
 RailApp.prototype.update = function() {
@@ -82,6 +85,35 @@ RailApp.prototype.update = function() {
         zPos = Math.cos(angle)*this.trainRadius;
         this.ghostSprite.position.set(xPos, 5, zPos);
     }
+
+    //Move along spline
+    var time = Date.now();
+    var looptime = 20 * 1000;
+    var t = ( time % looptime ) / looptime;
+
+    var pos = this.tube.parameters.path.getPointAt( t );
+    //pos.multiplyScalar( scale );
+
+    // interpolation
+    var segments = this.tube.tangents.length;
+    var pickt = t * segments;
+    var pick = Math.floor( pickt );
+    var pickNext = ( pick + 1 ) % segments;
+
+    this.binormal.subVectors( this.tube.binormals[ pickNext ], this.tube.binormals[ pick ] );
+    this.binormal.multiplyScalar( pickt - pick ).add( this.tube.binormals[ pick ] );
+
+
+    var dir = this.tube.parameters.path.getTangentAt( t );
+
+    var offset = 1;
+
+    this.normal.copy( this.binormal ).cross( dir );
+
+    // We move on a offset on its binormal
+    pos.add( this.normal.clone().multiplyScalar( offset ) );
+    this.sphere.position.set(pos.x, pos.y+5, pos.z-100);
+
     BaseApp.prototype.update.call(this);
 };
 
@@ -107,7 +139,7 @@ RailApp.prototype.createScene = function() {
     //var yScaleFactor = 0.55;
     //ringMesh.scale.y = yScaleFactor;
     ringMesh.rotation.x = -Math.PI/2;
-    this.railGroup.add(ringMesh);
+    //this.railGroup.add(ringMesh);
 
     //Scene parameters
     this.engineX = 230;
@@ -172,6 +204,39 @@ RailApp.prototype.createScene = function() {
     this.ghostSprite.position.set(xPos, 5, zPos);
 
     this.scene.add(this.railGroup);
+
+    //Spline
+    var width = 200, depth = 275;
+    var sampleClosedSpline = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0, depth/2),
+        new THREE.Vector3(width, 0, depth),
+        new THREE.Vector3(width, 0, -depth/10),
+        new THREE.Vector3(0, 0, -depth/2),
+        new THREE.Vector3(-width, 0, -depth/10),
+        new THREE.Vector3(-width, 0, depth/2),
+        new THREE.Vector3(-width/1.5, 0, depth*1.3)
+    ]);
+
+    sampleClosedSpline.type = 'catmullrom';
+    sampleClosedSpline.closed = true;
+    var segments = 100, radiusSegments = 3, closed = true;
+    var tube = new THREE.TubeGeometry(sampleClosedSpline, segments, 2, radiusSegments, closed);
+    var tubeMat = new THREE.MeshLambertMaterial( {color:0x0000ff});
+    var tubeMesh = new THREE.Mesh(tube, tubeMat);
+    var trackGroup = new THREE.Object3D();
+    trackGroup.add(tubeMesh);
+    trackGroup.position.z = -100;
+    this.scene.add(trackGroup);
+
+    var pos = tube.parameters.path.getPointAt( 1 );
+    console.log("Point = ", pos);
+    var sphereGeom = new THREE.SphereBufferGeometry(3, 16, 16);
+    var sphereMat = new THREE.MeshLambertMaterial( {color:0x00ff00});
+    var sphere = new THREE.Mesh(sphereGeom, sphereMat);
+    this.scene.add(sphere);
+    sphere.position.set(pos.x, pos.y, pos.z);
+    this.tube = tube;
+    this.sphere = sphere;
 };
 
 RailApp.prototype.startStopAnimation = function() {
