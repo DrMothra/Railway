@@ -14,28 +14,63 @@ RailApp.prototype.init = function(container) {
     BaseApp.prototype.init.call(this, container);
 
     //Journey data - read from file later
-    this.data = [
-        { stationName: "D10837", time: 0, delay: 1 },
-        { stationName: "D50845", time: 0, delay: 1 },
-        { stationName: "D50901", time: 2, delay: 1.5 },
-        { stationName: "D50905", time: 3, delay: 1 },
-        { stationName: "D50913", time: 3, delay: 1 },
-        { stationName: "D50921", time: 4, delay: 0 },
-        { stationName: "D52203", time: 7, delay: 0 },
-        { stationName: "D52205", time: 8, delay: -1 },
-        { stationName: "D52211", time: 8, delay: -0.5 },
-        { stationName: "OXDX55", time: 9, delay: 0 },
-        { stationName: "OXDX56", time: 10, delay: 0 },
-        { stationName: "OXDX57", time: 11, delay: 0 },
-        { stationName: "OXDX58", time: 12, delay: -0.5 },
-        { stationName: "OXDX59", time: 15, delay: 0 },
-        { stationName: "OX0014", time: 16, delay: 0.5 },
-        { stationName: "OX0016", time: 17, delay: 0 },
-        { stationName: "OX0018", time: 17, delay: -1 },
-        { stationName: "OX0020", time: 18, delay: -1 },
-        { stationName: "OXA072", time: 20, delay: -2 },
-        { stationName: "OX0072", time: 20, delay: -2 },
-        { stationName: "OXCOUT", time: 24, delay: 0 }
+    //Train 1 - P0347220151021
+    this.trains = [
+        {
+            id: "P0347220151021",
+            startTime: 0,
+            routeData: [
+                {stationName: "D10837", time: 0, delay: 1},
+                {stationName: "D50845", time: 0, delay: 1},
+                {stationName: "D50901", time: 2, delay: 1.5},
+                {stationName: "D50905", time: 3, delay: 1},
+                {stationName: "D50913", time: 3, delay: 1},
+                {stationName: "D50921", time: 4, delay: 0},
+                {stationName: "D52203", time: 7, delay: 0},
+                {stationName: "D52205", time: 8, delay: -1},
+                {stationName: "D52211", time: 8, delay: -0.5},
+                {stationName: "OXDX55", time: 9, delay: 0},
+                {stationName: "OXDX56", time: 10, delay: 0},
+                {stationName: "OXDX57", time: 11, delay: 0},
+                {stationName: "OXDX58", time: 12, delay: -0.5},
+                {stationName: "OXDX59", time: 15, delay: 0},
+                {stationName: "OX0014", time: 16, delay: 0.5},
+                {stationName: "OX0016", time: 17, delay: 0},
+                {stationName: "OX0018", time: 17, delay: -1},
+                {stationName: "OX0020", time: 18, delay: -1},
+                {stationName: "OXA072", time: 20, delay: -2},
+                {stationName: "OX0072", time: 20, delay: -2},
+                {stationName: "OXCOUT", time: 24, delay: 0}
+            ]
+        },
+
+        {
+            id: "P0063120151021",
+            startTime: 16,
+            routeData: [
+                {stationName: "D10837", time: 0, delay: 1},
+                {stationName: "D50845", time: 0, delay: 1},
+                {stationName: "D50901", time: 2, delay: 1.5},
+                {stationName: "D50905", time: 3, delay: 1},
+                {stationName: "D50913", time: 3, delay: 1},
+                {stationName: "D50921", time: 4, delay: 0},
+                {stationName: "D52203", time: 7, delay: 0},
+                {stationName: "D52205", time: 8, delay: -1},
+                {stationName: "D52211", time: 8, delay: -0.5},
+                {stationName: "OXDX55", time: 9, delay: 0},
+                {stationName: "OXDX56", time: 10, delay: 0},
+                {stationName: "OXDX57", time: 11, delay: 0},
+                {stationName: "OXDX58", time: 12, delay: -0.5},
+                {stationName: "OXDX59", time: 15, delay: 0},
+                {stationName: "OX0014", time: 16, delay: 0.5},
+                {stationName: "OX0016", time: 17, delay: 0},
+                {stationName: "OX0018", time: 17, delay: -1},
+                {stationName: "OX0020", time: 18, delay: -1},
+                {stationName: "OXA072", time: 20, delay: -2},
+                {stationName: "OX0072", time: 20, delay: -2},
+                {stationName: "OXCOUT", time: 24, delay: 0}
+            ]
+        }
     ];
 
     this.tripTime = this.data[this.data.length-1].time;
@@ -212,15 +247,10 @@ RailApp.prototype.reset = function() {
     this.delayTimeInc = delay/this.interStopTime;
 
     //Train positions
-    var angle = (this.currentTime/this.roundTripTime) * 2 * Math.PI;
-    var xPos = Math.sin(angle)*this.trainRadius;
-    var zPos = Math.cos(angle)*this.trainRadius;
-    this.engineSprite.position.set(xPos, 5, zPos);
-    angle = (this.data[this.currentStop].delay/this.roundTripTime) * 2 * Math.PI;
-    xPos = Math.sin(angle)*this.trainRadius;
-    zPos = Math.cos(angle)*this.trainRadius;
-    this.ghostSprite.position.set(xPos, 5, zPos);
-    this.railGroup.rotation.y = 0;
+    var pos = this.tube.parameters.path.getPointAt( 0 );
+    this.engineSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+    this.ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+
 
     //Redraw
     this.renderer.render( this.scene, this.camera );
