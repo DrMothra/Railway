@@ -15,7 +15,7 @@ RailApp.prototype.init = function(container) {
 
     //Journey data - read from file later
     //Train 1 - P0347220151021
-    this.trains = [
+    this.trainRoutes = [
         {
             id: "P0347220151021",
             startTime: 0,
@@ -72,48 +72,28 @@ RailApp.prototype.init = function(container) {
             ]
         }
     ];
-
-    this.tripTime = this.data[this.data.length-1].time;
-    this.tripTime *= 2;
-    this.animating = false;
 };
 
 RailApp.prototype.update = function() {
     var delta = this.clock.getDelta();
 
-    if(this.animating) {
-        this.currentTime += delta;
-        this.realTime += (delta * this.realTimeInc);
-        this.delayTime += (delta * this.delayTimeInc);
-        $('#minutes').html(this.realTime < 10 ? '0' + Math.floor(this.realTime) : Math.floor(this.realTime));
-        var pos = this.tube.parameters.path.getPointAt( this.currentTime / this.tripTime );
-        this.engineSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+    for(var i=0; i<this.trains.length; ++i) {
+        var train = this.trains[i];
+        var currentStop = train.getCurrentStop();
+        train.update(delta);
 
-        pos = this.tube.parameters.path.getPointAt( this.delayTime / this.tripTime );
-        this.ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+        //Update visuals
+        var pos = this.tube.parameters.path.getPointAt( train.getCurrentTime() / train.getTripTime());
+        train.setEnginePosition(pos);
+        pos = this.tube.parameters.path.getPointAt( train.getDelayTime() / train.getTripTime() );
+        train.setGhostPosition(pos);
 
-        //DEBUG
-        //console.log("Real time = ", this.realTime);
-
-        if(this.currentTime >= this.timeToNextStop) {
-            this.currentTime = this.timeToNextStop;
-            ++this.currentStop;
-            $('#delay').html(this.data[this.currentStop].delay);
-            if(this.currentStop >= (this.data.length-1)) {
-                //DEBUG
-                //console.log("Finished");
-                this.animating = false;
-                return;
+        if(train.passedStop()) {
+            if(train.running()) {
+                train.setTimeToNextStop(this.trainRoutes[i].routeData[currentStop+1].time - this.trainRoutes[i].routeData[currentStop].time);
+                train.setDelayTimes(this.trainRoutes[i].routeData[currentStop].delay, this.trainRoutes[i].routeData[currentStop+1].delay);
+                train.gotoNextStop();
             }
-
-            //DEBUG
-            //console.log("Arrived at stop ", this.currentStop);
-
-            this.timeToNextStop += this.interStopTime;
-            this.realTimeToNextStop = this.data[this.currentStop+1].time - this.data[this.currentStop].time;
-            this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
-            var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
-            this.delayTimeInc = delay/this.interStopTime;
         }
     }
 
@@ -130,7 +110,7 @@ RailApp.prototype.createScene = function() {
     plane.rotation.x = -Math.PI/2;
     this.scene.add(plane);
 
-    //Spline
+    //Track
     var width = 200, depth = 275;
     var sampleClosedSpline = new THREE.CatmullRomCurve3([
         new THREE.Vector3(0, 0, depth/2),
@@ -153,7 +133,6 @@ RailApp.prototype.createScene = function() {
     trackGroup.position.z = -100;
     this.scene.add(trackGroup);
 
-    var pos = tube.parameters.path.getPointAt( 0 );
     this.trackOffset = -100;
     this.trainHeight = 7;
     this.pinHeight = 20;
@@ -163,53 +142,46 @@ RailApp.prototype.createScene = function() {
     this.railGroup.name = "railway";
 
     var textureLoader = new THREE.TextureLoader();
-    var trainTex = textureLoader.load("images/engine.png");
     var pointTex = textureLoader.load("images/pin.png");
 
-    var trainMat = new THREE.SpriteMaterial( {map: trainTex} );
-    this.engineSprite = new THREE.Sprite(trainMat);
-    this.railGroup.add(this.engineSprite);
-    this.engineSprite.scale.set(10, 10, 1);
-    this.engineSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
-
-    var ghostMat = new THREE.SpriteMaterial( {map: trainTex, opacity: 0.5});
-    this.ghostSprite = new THREE.Sprite(ghostMat);
-    this.railGroup.add(this.ghostSprite);
-    this.ghostSprite.scale.set(10, 10, 1);
-    this.ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
-
     var pointMat = new THREE.SpriteMaterial( {map: pointTex} );
-    var numPointers = this.data.length;
+    var numPointers = this.trainRoutes[0].routeData.length;
 
     this.pointerSprites = [];
     var labelPos = new THREE.Vector3(), labelScale = new THREE.Vector3(30, 30, 1);
-    var label;
-    for(var i=0; i<numPointers; ++i) {
+    var pos = new THREE.Vector3();
+    var label, i;
+    //Need to do for each track
+    for(i=0; i<numPointers; ++i) {
         this.pointerSprites.push(new THREE.Sprite(pointMat));
         this.railGroup.add(this.pointerSprites[i]);
         this.pointerSprites[i].scale.set(30, 30, 1);
         pos = tube.parameters.path.getPointAt( i/numPointers );
         this.pointerSprites[i].position.set(pos.x, pos.y+this.pinHeight, pos.z+this.trackOffset);
         labelPos.set(this.pointerSprites[i].position.x, 30, this.pointerSprites[i].position.z);
-        label = spriteManager.create(this.data[i].stationName, labelPos, labelScale, 32, 1, true, false);
+        label = spriteManager.create(this.trainRoutes[0].routeData[i].stationName, labelPos, labelScale, 32, 1, true, false);
         this.railGroup.add(label);
     }
 
-    var trackLength = tube.parameters.path.getLength();
-    this.interStopDistance = trackLength / numPointers;
-    this.movementPerSecond = trackLength / this.tripTime;
-    this.interStopTime = this.interStopDistance / this.movementPerSecond;
-    this.currentTime = 0;
-    this.currentStop = 0;
-    this.realTime = 0;
-    this.timeToNextStop = this.interStopTime;
-    this.realTimeToNextStop = this.data[this.currentStop+1].time;
-    this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
-    $('#delay').html(this.data[this.currentStop].delay);
-    //Ghost engine
-    var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
-    this.delayTime = this.data[this.currentStop].delay;
-    this.delayTimeInc = delay/this.interStopTime;
+    //Set up trains
+    var length = tube.parameters.path.getLength(), stops, tripTime;
+    var currentDelay, nextDelay;
+    this.trains = [];
+    for(i=0; i<this.trainRoutes.length; ++i) {
+        this.trains.push(new Train());
+        stops = this.trainRoutes[i].routeData.length;
+        tripTime = this.trainRoutes[i].routeData[stops-1] - this.trainRoutes[i].routeData[0];
+        this.trains[i].init(length, stops, tripTime);
+        this.railGroup.add(this.trains[i].getTrainIcon());
+        this.trains[i].setEnginePosition(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+        this.railGroup.add(this.trains[i].getGhostIcon());
+        this.trains[i].setGhostPosition(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+        currentDelay = this.trainRoutes[i].routeData[0].delay;
+        nextDelay = this.trainRoutes[i].routeData[1].delay;
+        this.trains[i].setDelayTimes(currentDelay, nextDelay);
+    }
+
+    //$('#delay').html(this.data[this.currentStop].delay);
 
     this.scene.add(this.railGroup);
 };
@@ -236,10 +208,7 @@ RailApp.prototype.reset = function() {
     $('#minutes').html("00");
 
     //Train parameters
-    this.currentTime = 0;
-    this.currentStop = 0;
-    this.realTime = 0;
-    this.timeToNextStop = this.interStopTime;
+
     this.realTimeToNextStop = this.data[this.currentStop+1].time;
     $('#delay').html(this.data[this.currentStop].delay);
     var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
