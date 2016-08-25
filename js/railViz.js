@@ -3,6 +3,7 @@
  */
 
 var ROT_INC = Math.PI/32;
+var NUM_TRAINS = 4;
 
 function RailApp() {
     BaseApp.call(this);
@@ -12,94 +13,6 @@ RailApp.prototype = new BaseApp();
 
 RailApp.prototype.init = function(container) {
     BaseApp.prototype.init.call(this, container);
-
-    //Journey data - read from file later
-    //Train 1 - P0347220151021
-    this.trainRoutes = [
-        {
-            id: "P0347220151021",
-            startTime: 0,
-            routeData: [
-                {stationName: "D10837", time: 0, delay: 1},
-                {stationName: "D50845", time: 0, delay: 1},
-                {stationName: "D50901", time: 2, delay: 1.5},
-                {stationName: "D50905", time: 3, delay: 1},
-                {stationName: "D50913", time: 3, delay: 1},
-                {stationName: "D50921", time: 4, delay: 0},
-                {stationName: "D52203", time: 7, delay: 0},
-                {stationName: "D52205", time: 8, delay: -1},
-                {stationName: "D52211", time: 8, delay: -0.5},
-                {stationName: "OXDX55", time: 9, delay: 0},
-                {stationName: "OXDX56", time: 10, delay: 0},
-                {stationName: "OXDX57", time: 11, delay: 0},
-                {stationName: "OXDX58", time: 12, delay: -0.5},
-                {stationName: "OXDX59", time: 15, delay: 0},
-                {stationName: "OX0014", time: 16, delay: 0.5},
-                {stationName: "OX0016", time: 17, delay: 0},
-                {stationName: "OX0018", time: 17, delay: -1},
-                {stationName: "OX0020", time: 18, delay: -1},
-                {stationName: "OXA072", time: 20, delay: -2},
-                {stationName: "OX0072", time: 20, delay: -2},
-                {stationName: "OXCOUT", time: 24, delay: 0}
-            ]
-        },
-
-        {
-            id: "P0063120151021",
-            startTime: 5,
-            routeData: [
-                {stationName: "D10837", time: 0, delay: 1},
-                {stationName: "D50845", time: 0, delay: 1},
-                {stationName: "D50901", time: 2, delay: 1.5},
-                {stationName: "D50905", time: 3, delay: 1},
-                {stationName: "D50913", time: 3, delay: 1},
-                {stationName: "D50921", time: 4, delay: 0},
-                {stationName: "D52203", time: 7, delay: 0},
-                {stationName: "D52205", time: 8, delay: -1},
-                {stationName: "D52211", time: 8, delay: -0.5},
-                {stationName: "OXDX55", time: 9, delay: 0},
-                {stationName: "OXDX56", time: 10, delay: 0},
-                {stationName: "OXDX57", time: 11, delay: 0},
-                {stationName: "OXDX58", time: 12, delay: -0.5},
-                {stationName: "OXDX59", time: 15, delay: 0},
-                {stationName: "OX0014", time: 16, delay: 0.5},
-                {stationName: "OX0016", time: 17, delay: 0},
-                {stationName: "OX0018", time: 17, delay: -1},
-                {stationName: "OX0020", time: 18, delay: -1},
-                {stationName: "OXA072", time: 20, delay: -2},
-                {stationName: "OX0072", time: 20, delay: -2},
-                {stationName: "OXCOUT", time: 24, delay: 0}
-            ]
-        },
-
-        {
-            id: "P0063120151021",
-            startTime: 10,
-            routeData: [
-                {stationName: "D10837", time: 0, delay: 1},
-                {stationName: "D50845", time: 0, delay: 1},
-                {stationName: "D50901", time: 2, delay: 1.5},
-                {stationName: "D50905", time: 3, delay: 1},
-                {stationName: "D50913", time: 3, delay: 1},
-                {stationName: "D50921", time: 4, delay: 0},
-                {stationName: "D52203", time: 7, delay: 0},
-                {stationName: "D52205", time: 8, delay: -1},
-                {stationName: "D52211", time: 8, delay: -0.5},
-                {stationName: "OXDX55", time: 9, delay: 0},
-                {stationName: "OXDX56", time: 10, delay: 0},
-                {stationName: "OXDX57", time: 11, delay: 0},
-                {stationName: "OXDX58", time: 12, delay: -0.5},
-                {stationName: "OXDX59", time: 15, delay: 0},
-                {stationName: "OX0014", time: 16, delay: 0.5},
-                {stationName: "OX0016", time: 17, delay: 0},
-                {stationName: "OX0018", time: 17, delay: -1},
-                {stationName: "OX0020", time: 18, delay: -1},
-                {stationName: "OXA072", time: 20, delay: -2},
-                {stationName: "OX0072", time: 20, delay: -2},
-                {stationName: "OXCOUT", time: 24, delay: 0}
-            ]
-        }
-    ];
 
     this.running = false;
     this.trackOffset = -100;
@@ -114,29 +27,19 @@ RailApp.prototype.update = function() {
     if(this.running) {
         for(var i=0; i<this.trains.length; ++i) {
             var train = this.trains[i];
-            var currentStop = train.getCurrentStop();
             if(train.update(delta)) {
                 //Update visuals
-                var currentTime = train.getCurrentTime();
-                var currentDelay = this.trainRoutes[i].routeData[currentStop].delay;
                 var tripTime = train.getTripTime();
-                this.tempPos = this.tube.parameters.path.getPointAt( currentTime / tripTime);
+                this.tempPos = this.tube.parameters.path.getPointAt( train.getCurrentTime() / tripTime);
                 this.tempPos.add(this.posOffset);
-                train.setEnginePosition(this.tempPos);
-                //DEBUG
-                var delayTime = train.getDelayTime();
-                console.log("Delay time = ", delayTime);
-                this.tempPos = this.tube.parameters.path.getPointAt( (currentTime + currentDelay + delayTime) / tripTime );
+                this.trainSprites[i].position.set(this.tempPos.x, this.tempPos.y, this.tempPos.z);
+                
+                this.tempPos = this.tube.parameters.path.getPointAt( train.getDelayTime() / tripTime );
                 this.tempPos.add(this.posOffset);
-                train.setGhostPosition(this.tempPos);
+                this.ghostSprites[i].position.set(this.tempPos.x, this.tempPos.y, this.tempPos.z);
 
                 if(train.passedStop()) {
-                    if(train.gotoNextStop()) {
-                        ++currentStop;
-                        train.setTimeToNextStop(this.trainRoutes[i].routeData[currentStop+1].time - this.trainRoutes[i].routeData[currentStop].time);
-                        train.setNextDelay(this.trainRoutes[i].routeData[currentStop].delay, this.trainRoutes[i].routeData[currentStop+1].delay);
-                        train.setDelayTime(0);
-                    }
+                    train.gotoNextStop();
                 }
             }
         }
@@ -148,6 +51,10 @@ RailApp.prototype.update = function() {
 RailApp.prototype.createScene = function() {
     BaseApp.prototype.createScene.call(this);
 
+    var textureLoader = new THREE.TextureLoader();
+    var pointTex = textureLoader.load("images/pin.png");
+    var trainTex = textureLoader.load("images/engineWhite.png");
+    
     //Ground plane
     var planeGeom = new THREE.PlaneBufferGeometry(1000, 1000, 8, 8);
     var planeMat = new THREE.MeshLambertMaterial( {color: 0x1D701D});
@@ -184,11 +91,8 @@ RailApp.prototype.createScene = function() {
     this.railGroup = new THREE.Object3D();
     this.railGroup.name = "railway";
 
-    var textureLoader = new THREE.TextureLoader();
-    var pointTex = textureLoader.load("images/pin.png");
-
     var pointMat = new THREE.SpriteMaterial( {map: pointTex} );
-    var numPointers = this.trainRoutes[0].routeData.length;
+    var numPointers = trainRoute.routeData.length;
 
     this.pointerSprites = [];
     var labelPos = new THREE.Vector3(), labelScale = new THREE.Vector3(30, 30, 1);
@@ -202,37 +106,38 @@ RailApp.prototype.createScene = function() {
         pos = tube.parameters.path.getPointAt( i/numPointers );
         this.pointerSprites[i].position.set(pos.x, pos.y+this.pinHeight, pos.z+this.trackOffset);
         labelPos.set(this.pointerSprites[i].position.x, 30, this.pointerSprites[i].position.z);
-        label = spriteManager.create(this.trainRoutes[0].routeData[i].stationName, labelPos, labelScale, 32, 1, true, false);
+        label = spriteManager.create(trainRoute.routeData[i].stationName, labelPos, labelScale, 32, 1, true, false);
         this.railGroup.add(label);
     }
 
     //Set up trains
-    var length = tube.parameters.path.getLength(), stops, tripTime, startTime;
-    var currentDelay, nextDelay;
+    var length = tube.parameters.path.getLength();
     this.trains = [];
-    for(i=0; i<this.trainRoutes.length; ++i) {
+    //Train materials
+    var trainMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex} );
+    var ghostMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex, opacity: 0.5});
+    this.trainSprites = [];
+    this.ghostSprites = [];
+    
+    for(i=0; i<NUM_TRAINS; ++i) {
         this.trains.push(new Train());
-        stops = this.trainRoutes[i].routeData.length;
-        tripTime = this.trainRoutes[i].routeData[stops-1].time - this.trainRoutes[i].routeData[0].time;
-        startTime = this.trainRoutes[i].startTime;
-        this.trains[i].init(length, stops, tripTime, startTime);
+        this.trains[i].init(length, i);
 
-        this.trains[i].setTimeToNextStop(this.trainRoutes[i].routeData[1].time);
-
-        this.railGroup.add(this.trains[i].getTrainIcon());
+        this.trainSprites.push(new THREE.Sprite(trainMat));
+        this.railGroup.add(this.trainSprites[i]);
         pos = tube.parameters.path.getPointAt(0);
-        this.trains[i].setEnginePosition(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+        this.trainSprites[i].position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+        this.trainSprites[i].scale.set(10, 10, 1);
 
-        this.railGroup.add(this.trains[i].getGhostIcon());
-        this.trains[i].setGhostPosition(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
-        
-        currentDelay = this.trainRoutes[i].routeData[0].delay;
-        nextDelay = this.trainRoutes[i].routeData[1].delay;
-        this.trains[i].setNextDelay(currentDelay, nextDelay);
-        this.trains[i].setDelayTime(0);
+        this.ghostSprites.push(new THREE.Sprite(ghostMat));
+        this.railGroup.add(this.ghostSprites[i]);
+        this.ghostSprites[i].position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+        this.ghostSprites[i].scale.set(10, 10, 1);
     }
-
+    
     //$('#delay').html(this.data[this.currentStop].delay);
+    this.trainSprites[0].material.color.set(0xD9DF18);
+    //this.ghostSprites[0].material.color.set(0x00ff00);
 
     this.scene.add(this.railGroup);
 };
