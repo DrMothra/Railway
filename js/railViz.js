@@ -117,10 +117,16 @@ RailApp.prototype.update = function() {
             var currentStop = train.getCurrentStop();
             if(train.update(delta)) {
                 //Update visuals
-                this.tempPos = this.tube.parameters.path.getPointAt( train.getCurrentTime() / train.getTripTime());
+                var currentTime = train.getCurrentTime();
+                var currentDelay = this.trainRoutes[i].routeData[currentStop].delay;
+                var tripTime = train.getTripTime();
+                this.tempPos = this.tube.parameters.path.getPointAt( currentTime / tripTime);
                 this.tempPos.add(this.posOffset);
                 train.setEnginePosition(this.tempPos);
-                this.tempPos = this.tube.parameters.path.getPointAt( train.getDelayTime() / train.getTripTime() );
+                //DEBUG
+                var delayTime = train.getDelayTime();
+                console.log("Delay time = ", delayTime);
+                this.tempPos = this.tube.parameters.path.getPointAt( (currentTime + currentDelay + delayTime) / tripTime );
                 this.tempPos.add(this.posOffset);
                 train.setGhostPosition(this.tempPos);
 
@@ -129,6 +135,7 @@ RailApp.prototype.update = function() {
                         ++currentStop;
                         train.setTimeToNextStop(this.trainRoutes[i].routeData[currentStop+1].time - this.trainRoutes[i].routeData[currentStop].time);
                         train.setNextDelay(this.trainRoutes[i].routeData[currentStop].delay, this.trainRoutes[i].routeData[currentStop+1].delay);
+                        train.setDelayTime(0);
                     }
                 }
             }
@@ -222,7 +229,7 @@ RailApp.prototype.createScene = function() {
         currentDelay = this.trainRoutes[i].routeData[0].delay;
         nextDelay = this.trainRoutes[i].routeData[1].delay;
         this.trains[i].setNextDelay(currentDelay, nextDelay);
-        this.trains[i].setDelayTime(currentDelay);
+        this.trains[i].setDelayTime(0);
     }
 
     //$('#delay').html(this.data[this.currentStop].delay);
