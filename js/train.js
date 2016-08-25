@@ -21,16 +21,17 @@ function Train() {
     this.engineSprite = undefined;
     this.ghostSprite = undefined;
     this.tripTime = 0;
+    this.startTime = 0;
 }
 
 Train.prototype = {
-    init: function(trackLength, numStops, tripTime) {
+    init: function(trackLength, numStops, tripTime, startTime) {
         this.tripTime = tripTime;
+        this.startTime = startTime;
         this.numStops = numStops;
         this.interStopDistance = trackLength / numStops;
         this.movementPerSecond = trackLength / tripTime;
         this.interStopTime = this.interStopDistance / this.movementPerSecond;
-        this.timeToNextStop = this.interStopTime;
         
         //Train visuals
         var textureLoader = new THREE.TextureLoader();
@@ -53,23 +54,27 @@ Train.prototype = {
     },
 
     setEnginePosition: function(pos) {
-        this.enginePosition.copy(pos);
+        this.engineSprite.position.set(pos.x, pos.y, pos.z);
     },
     
     setGhostPosition: function(pos) {
-        this.ghostPosition.copy(pos);
+        this.ghostSprite.position.set(pos.x, pos.y, pos.z);
     },
     
     setTimeToNextStop: function(nextStopTime) {
+        this.timeToNextStop += this.interStopTime;
         this.realTimeToNextStop = nextStopTime;
         this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
         
     },
-    
-    setDelayTimes: function(current, next) {
+
+    setNextDelay: function(current, next) {
         var delay = next - current + this.interStopTime;
-        this.delayTime = current;
         this.delayTimeInc = delay/this.interStopTime;
+    },
+
+    setDelayTime: function(delay) {
+        this.delayTime = delay;
     },
     
     getDelayTime: function () {
@@ -85,21 +90,27 @@ Train.prototype = {
     },
 
     gotoNextStop: function() {
-        ++this.currentStop;
-        if(this.currentStop >= this.numStops) {
-            this.animating = false;
-            return;
-        }
         this.currentTime = this.timeToNextStop;
-        this.timeToNextStop += this.interStopTime;
+        ++this.currentStop;
+        
+        if(this.currentStop >= (this.numStops-1)) {
+            this.animating = false;
+        }
+        
+        return this.animating;
     },
 
     update: function(delta) {
-        if(!this.animating) return;
-
         this.currentTime += delta;
+        if(this.currentTime >= this.startTime) this.animating = true;
+
+        if(!this.animating) return false;
+
+
         this.realTime += (delta * this.realTimeInc);
         this.delayTime += (delta * this.delayTimeInc);
+
+        return true;
     },
     
     getCurrentTime: function() {
