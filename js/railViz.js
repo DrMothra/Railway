@@ -57,7 +57,7 @@ RailApp.prototype.createScene = function() {
     
     //Ground plane
     var planeGeom = new THREE.PlaneBufferGeometry(1000, 1000, 8, 8);
-    var planeMat = new THREE.MeshLambertMaterial( {color: 0x1D701D});
+    var planeMat = new THREE.MeshLambertMaterial( {color: 0x1d701d});
     var plane = new THREE.Mesh(planeGeom, planeMat);
     plane.rotation.x = -Math.PI/2;
     this.scene.add(plane);
@@ -115,7 +115,9 @@ RailApp.prototype.createScene = function() {
     this.trains = [];
     //Train materials
     var trainMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex} );
+    var trainMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex} );
     var ghostMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex, opacity: 0.5});
+    var ghostMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex, opacity: 0.5});
     this.trainSprites = [];
     this.ghostSprites = [];
     
@@ -123,20 +125,19 @@ RailApp.prototype.createScene = function() {
         this.trains.push(new Train());
         this.trains[i].init(length, i);
 
-        this.trainSprites.push(new THREE.Sprite(trainMat));
+        this.trainSprites.push(new THREE.Sprite(i === 0 ? trainMatSelected : trainMat));
         this.railGroup.add(this.trainSprites[i]);
         pos = tube.parameters.path.getPointAt(0);
         this.trainSprites[i].position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
         this.trainSprites[i].scale.set(10, 10, 1);
 
-        this.ghostSprites.push(new THREE.Sprite(ghostMat));
+        this.ghostSprites.push(new THREE.Sprite(i === 0 ? ghostMatSelected : ghostMat));
         this.railGroup.add(this.ghostSprites[i]);
         this.ghostSprites[i].position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
         this.ghostSprites[i].scale.set(10, 10, 1);
     }
     
     //$('#delay').html(this.data[this.currentStop].delay);
-    this.trainSprites[0].material.color.set(0xD9DF18);
     //this.ghostSprites[0].material.color.set(0x00ff00);
 
     this.scene.add(this.railGroup);
