@@ -160,6 +160,11 @@ BaseApp.prototype.createCamera = function() {
     console.log('dom =', this.renderer.domElement);
 };
 
+BaseApp.prototype.setCamera = function(cameraProp) {
+    this.camera.position.set(cameraProp[0].x, cameraProp[0].y, cameraProp[0].z);
+    this.controls.setLookAt(cameraProp[1]);
+};
+
 BaseApp.prototype.createControls = function() {
     this.controls = new THREE.TrackballControls(this.camera, this.container);
     this.controls.rotateSpeed = 1.0;

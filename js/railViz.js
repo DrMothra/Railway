@@ -6,6 +6,18 @@ var ROT_INC = Math.PI/32;
 var NUM_TRAINS_PER_TRACK = 4;
 var NUM_TRACKS = 2;
 
+//Camera views
+var cameraViews = {
+    front: [ new THREE.Vector3(50, 70, 120),
+        new THREE.Vector3(0, 0, 0)],
+    right: [ new THREE.Vector3(286, 36, 16),
+        new THREE.Vector3(0, 0, 0)],
+    back: [ new THREE.Vector3(80, 170, 20),
+        new THREE.Vector3(0, 0, 0)],
+    left: [ new THREE.Vector3(80, 170, 20),
+        new THREE.Vector3(0, 0, 0)]
+};
+
 function RailApp() {
     BaseApp.call(this);
 }
@@ -15,6 +27,8 @@ RailApp.prototype = new BaseApp();
 RailApp.prototype.init = function(container) {
     BaseApp.prototype.init.call(this, container);
 
+    this.setCamera(cameraViews.front);
+    this.cameraView = 'front';
     this.running = false;
     this.trackOffset = 100;
     this.trainHeight = 7;
@@ -163,6 +177,15 @@ RailApp.prototype.createScene = function() {
     //this.scene.add(this.railGroup);
 };
 
+RailApp.prototype.changeView = function(viewName) {
+    if(!viewName) {
+        console.log("No camera view name!");
+        return;
+    }
+    this.cameraView = viewName;
+    this.setCamera(cameraViews[this.cameraView]);
+};
+
 RailApp.prototype.startStopAnimation = function() {
     this.running = !this.running;
     $('#startStop').html(this.running ? "Stop" : "Start");
@@ -235,6 +258,14 @@ $(document).ready(function() {
 
     $('#reset').on("click", function() {
         app.reset();
+    });
+
+    $('#nextView').on("click", function() {
+        app.changeView('next');
+    });
+
+    $('#previousView').on("click", function() {
+        app.changeView('previous');
     });
 
     $('#trainSelect').on('hidden.bs.dropdown', function () {
