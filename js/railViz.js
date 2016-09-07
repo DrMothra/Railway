@@ -3,7 +3,8 @@
  */
 
 var ROT_INC = Math.PI/32;
-var NUM_TRAINS = 4;
+var NUM_TRAINS_PER_TRACK = 4;
+var NUM_TRACKS = 2;
 
 function RailApp() {
     BaseApp.call(this);
@@ -15,10 +16,10 @@ RailApp.prototype.init = function(container) {
     BaseApp.prototype.init.call(this, container);
 
     this.running = false;
-    this.trackOffset = -100;
+    this.trackOffset = 100;
     this.trainHeight = 7;
     this.tempPos = new THREE.Vector3();
-    this.posOffset = new THREE.Vector3(0, this.trainHeight, this.trackOffset);
+    this.posOffset = new THREE.Vector3(0, this.trainHeight, 0);
 };
 
 RailApp.prototype.update = function() {
@@ -30,11 +31,11 @@ RailApp.prototype.update = function() {
             if(train.update(delta)) {
                 //Update visuals
                 var tripTime = train.getTripTime();
-                this.tempPos = this.tube.parameters.path.getPointAt( train.getCurrentTime() / tripTime);
+                this.tempPos = this.tubes[0].parameters.path.getPointAt( train.getCurrentTime() / tripTime);
                 this.tempPos.add(this.posOffset);
                 this.trainSprites[i].position.set(this.tempPos.x, this.tempPos.y, this.tempPos.z);
                 
-                this.tempPos = this.tube.parameters.path.getPointAt( train.getDelayTime() / tripTime );
+                this.tempPos = this.tubes[0].parameters.path.getPointAt( train.getDelayTime() / tripTime );
                 this.tempPos.add(this.posOffset);
                 this.ghostSprites[i].position.set(this.tempPos.x, this.tempPos.y, this.tempPos.z);
 
@@ -56,7 +57,8 @@ RailApp.prototype.createScene = function() {
     var trainTex = textureLoader.load("images/engineWhite.png");
     
     //Ground plane
-    var planeGeom = new THREE.PlaneBufferGeometry(1000, 1000, 8, 8);
+    var groundWidth = 1000, groundDepth = 2000, i;
+    var planeGeom = new THREE.PlaneBufferGeometry(groundWidth, groundDepth, 8, 8);
     var planeMat = new THREE.MeshLambertMaterial( {color: 0x1d701d});
     var plane = new THREE.Mesh(planeGeom, planeMat);
     plane.rotation.x = -Math.PI/2;
@@ -77,19 +79,27 @@ RailApp.prototype.createScene = function() {
     sampleClosedSpline.type = 'catmullrom';
     sampleClosedSpline.closed = true;
     var segments = 100, radiusSegments = 3, closed = true;
-    var tube = new THREE.TubeGeometry(sampleClosedSpline, segments, 2, radiusSegments, closed);
     var tubeMat = new THREE.MeshLambertMaterial( {color:0x0000ff});
-    var tubeMesh = new THREE.Mesh(tube, tubeMat);
-    var trackGroup = new THREE.Object3D();
-    trackGroup.add(tubeMesh);
-    trackGroup.position.z = -100;
-    this.scene.add(trackGroup);
+
+    //Tracks
+    var trackOffset = -700;
+    this.trackGroups = [];
+    this.tubeMeshes = [];
+    this.tubes = [];
+    for(i=0; i<NUM_TRACKS; ++i) {
+        this.tubes.push(new THREE.TubeGeometry(sampleClosedSpline, segments, 2, radiusSegments, closed));
+        this.tubeMeshes.push(new THREE.Mesh(this.tubes[i], tubeMat));
+        this.trackGroups.push(new THREE.Object3D());
+        this.trackGroups[i].add(this.tubeMeshes[i]);
+        this.trackGroups[i].position.z = i * trackOffset;
+        this.scene.add(this.trackGroups[i]);
+    }
+    this.trackGroups[1].rotation.y = Math.PI/2;
     
     this.pinHeight = 20;
-    this.tube = tube;
 
-    this.railGroup = new THREE.Object3D();
-    this.railGroup.name = "railway";
+    //this.railGroup = new THREE.Object3D();
+    //this.railGroup.name = "railway";
 
     var pointMat = new THREE.SpriteMaterial( {map: pointTex} );
     var numPointers = trainRoute.routeData.length;
@@ -97,21 +107,25 @@ RailApp.prototype.createScene = function() {
     this.pointerSprites = [];
     var labelPos = new THREE.Vector3(), labelScale = new THREE.Vector3(30, 30, 1);
     var pos = new THREE.Vector3();
-    var label, i;
+    var label;
     //Need to do for each track
-    for(i=0; i<numPointers; ++i) {
-        this.pointerSprites.push(new THREE.Sprite(pointMat));
-        this.railGroup.add(this.pointerSprites[i]);
-        this.pointerSprites[i].scale.set(30, 30, 1);
-        pos = tube.parameters.path.getPointAt( i/numPointers );
-        this.pointerSprites[i].position.set(pos.x, pos.y+this.pinHeight, pos.z+this.trackOffset);
-        labelPos.set(this.pointerSprites[i].position.x, 30, this.pointerSprites[i].position.z);
-        label = spriteManager.create(trainRoute.routeData[i].stationName, labelPos, labelScale, 32, 1, true, false);
-        this.railGroup.add(label);
+    var pointerSprite, track;
+    for(track=0; track<NUM_TRACKS; ++track) {
+        for(i=0; i<numPointers; ++i) {
+            pointerSprite = new THREE.Sprite(pointMat);
+            this.pointerSprites.push(pointerSprite);
+            this.trackGroups[track].add(pointerSprite);
+            pointerSprite.scale.set(30, 30, 1);
+            pos = this.tubes[track].parameters.path.getPointAt( i/numPointers );
+            pointerSprite.position.set(pos.x, pos.y+this.pinHeight, pos.z);
+            labelPos.set(pointerSprite.position.x, 30, pointerSprite.position.z);
+            label = spriteManager.create(trainRoute.routeData[i].stationName, labelPos, labelScale, 32, 1, true, false);
+            this.trackGroups[track].add(label);
+        }
     }
 
     //Set up trains
-    var length = tube.parameters.path.getLength();
+    var length = this.tubes[0].parameters.path.getLength();
     this.trains = [];
     //Train materials
     var trainMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex} );
@@ -120,27 +134,33 @@ RailApp.prototype.createScene = function() {
     var ghostMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex, opacity: 0.5});
     this.trainSprites = [];
     this.ghostSprites = [];
-    
-    for(i=0; i<NUM_TRAINS; ++i) {
-        this.trains.push(new Train());
-        this.trains[i].init(length, i);
+    var currentTrain, trainSprite, ghostSprite;
+    for(track=0; track<NUM_TRACKS; ++track) {
+        for(i=0; i<NUM_TRAINS_PER_TRACK; ++i) {
+            currentTrain = new Train();
+            this.trains.push(currentTrain);
+            currentTrain.init(length, i);
 
-        this.trainSprites.push(new THREE.Sprite(i === 0 ? trainMatSelected : trainMat));
-        this.railGroup.add(this.trainSprites[i]);
-        pos = tube.parameters.path.getPointAt(0);
-        this.trainSprites[i].position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
-        this.trainSprites[i].scale.set(10, 10, 1);
+            trainSprite = new THREE.Sprite(i === 0 ? trainMatSelected : trainMat);
+            this.trainSprites.push(trainSprite);
+            this.trackGroups[track].add(trainSprite);
+            pos = this.tubes[track].parameters.path.getPointAt(0);
+            trainSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
+            trainSprite.scale.set(10, 10, 1);
 
-        this.ghostSprites.push(new THREE.Sprite(i === 0 ? ghostMatSelected : ghostMat));
-        this.railGroup.add(this.ghostSprites[i]);
-        this.ghostSprites[i].position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
-        this.ghostSprites[i].scale.set(10, 10, 1);
+            ghostSprite = new THREE.Sprite(i === 0 ? ghostMatSelected : ghostMat);
+            this.ghostSprites.push(ghostSprite);
+            this.trackGroups[track].add(ghostSprite);
+            ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
+            ghostSprite.scale.set(10, 10, 1);
+        }
     }
+
     
     //$('#delay').html(this.data[this.currentStop].delay);
     //this.ghostSprites[0].material.color.set(0x00ff00);
 
-    this.scene.add(this.railGroup);
+    //this.scene.add(this.railGroup);
 };
 
 RailApp.prototype.startStopAnimation = function() {
@@ -173,7 +193,7 @@ RailApp.prototype.reset = function() {
     this.delayTimeInc = delay/this.interStopTime;
 
     //Train positions
-    var pos = this.tube.parameters.path.getPointAt( 0 );
+    var pos = this.tubes[0].parameters.path.getPointAt( 0 );
     this.engineSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
     this.ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
 
