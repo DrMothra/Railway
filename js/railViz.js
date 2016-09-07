@@ -141,14 +141,14 @@ RailApp.prototype.createScene = function() {
             this.trains.push(currentTrain);
             currentTrain.init(length, i);
 
-            trainSprite = new THREE.Sprite(i === 0 ? trainMatSelected : trainMat);
+            trainSprite = new THREE.Sprite(i === 0 && track === 0 ? trainMatSelected : trainMat);
             this.trainSprites.push(trainSprite);
             this.trackGroups[track].add(trainSprite);
             pos = this.tubes[track].parameters.path.getPointAt(0);
             trainSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
             trainSprite.scale.set(10, 10, 1);
 
-            ghostSprite = new THREE.Sprite(i === 0 ? ghostMatSelected : ghostMat);
+            ghostSprite = new THREE.Sprite(i === 0 && track === 0 ? ghostMatSelected : ghostMat);
             this.ghostSprites.push(ghostSprite);
             this.trackGroups[track].add(ghostSprite);
             ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
@@ -237,12 +237,9 @@ $(document).ready(function() {
         app.reset();
     });
 
-    $('#rotateLeft').on("click", function() {
-        app.rotateTrackLeft();
-    });
-
-    $('#rotateRight').on("click", function() {
-        app.rotateTrackRight();
+    $('#trainSelect').on('hidden.bs.dropdown', function () {
+        // do something…
+        console.log("Fired");
     });
 
     app.run();
