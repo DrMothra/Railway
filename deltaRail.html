@@ -38,12 +38,12 @@
         <button id="reset" type="button" class="btn btn-primary">Reset</button>
     </div>
     <div>
-        <button type="button" class="btn btn-primary active">Track 1</button>
-        <button type="button" class="btn btn-primary">Track 2</button>
+        <button id="track0" type="button" class="btn btn-primary active">Track 1</button>
+        <button id="track1" type="button" class="btn btn-primary">Track 2</button>
     </div>
     <div>
-        <button type="button" class="btn btn-primary"><</button>
-        <button type="button" class="btn btn-primary">></button>
+        <button id="previousView" type="button" class="btn btn-primary"><</button>
+        <button id="nextView" type="button" class="btn btn-primary">></button>
     </div>
     <div class="dropdown" id="trainSelect">
         <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
@@ -69,6 +69,9 @@
         <span>Date : </span><span>22/10/2015</span>
     </div>
 
+    <div>
+        <span>Train : </span><span id="trainID">001</span>
+    </div>
     <div id="clock">
         <span>Time : </span><span id="hours">00</span><span>:</span><span id="minutes">00</span>
     </div>

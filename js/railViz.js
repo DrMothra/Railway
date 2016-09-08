@@ -7,16 +7,23 @@ var NUM_TRAINS_PER_TRACK = 4;
 var NUM_TRACKS = 2;
 
 //Camera views
-var cameraViews = {
-    front: [ new THREE.Vector3(50, 70, 120),
-        new THREE.Vector3(0, 0, 0)],
-    right: [ new THREE.Vector3(286, 36, 16),
-        new THREE.Vector3(0, 0, 0)],
-    back: [ new THREE.Vector3(80, 170, 20),
-        new THREE.Vector3(0, 0, 0)],
-    left: [ new THREE.Vector3(80, 170, 20),
-        new THREE.Vector3(0, 0, 0)]
-};
+var cameraViews = [
+    {
+        front: [ new THREE.Vector3(0, 240, 640), new THREE.Vector3(0, 0, 0)],
+        right: [ new THREE.Vector3(640, 240, 0), new THREE.Vector3(0, 0, 0)],
+        back: [ new THREE.Vector3(0, 240, -640), new THREE.Vector3(0, 0, 0)],
+        left: [ new THREE.Vector3(-640, 240, 0), new THREE.Vector3(0, 0, 0)]
+    },
+
+    {
+        front: [ new THREE.Vector3(0, 240, -60), new THREE.Vector3(0, 0, -700)],
+        right: [ new THREE.Vector3(640, 240, -760), new THREE.Vector3(0, 0, -700)],
+        back: [ new THREE.Vector3(0, 240, -1440), new THREE.Vector3(0, 0, -700)],
+        left: [ new THREE.Vector3(-640, 240, -760), new THREE.Vector3(0, 0, -700)]
+    }
+];
+
+var viewOrder = ['front', 'right', 'back', 'left'];
 
 function RailApp() {
     BaseApp.call(this);
@@ -27,13 +34,16 @@ RailApp.prototype = new BaseApp();
 RailApp.prototype.init = function(container) {
     BaseApp.prototype.init.call(this, container);
 
-    this.setCamera(cameraViews.front);
-    this.cameraView = 'front';
+    this.cameraView = 0;
+    this.trackView = 0;
+    var camView = cameraViews[this.trackView];
+    this.setCamera(camView.front);
     this.running = false;
     this.trackOffset = 100;
     this.trainHeight = 7;
     this.tempPos = new THREE.Vector3();
     this.posOffset = new THREE.Vector3(0, this.trainHeight, 0);
+    this.currentTrain = 0;
 };
 
 RailApp.prototype.update = function() {
@@ -142,8 +152,8 @@ RailApp.prototype.createScene = function() {
     var length = this.tubes[0].parameters.path.getLength();
     this.trains = [];
     //Train materials
-    var trainMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex} );
-    var trainMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex} );
+    this.defaultTrainMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex} );
+    this.trainMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex} );
     var ghostMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex, opacity: 0.5});
     var ghostMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex, opacity: 0.5});
     this.trainSprites = [];
@@ -155,7 +165,7 @@ RailApp.prototype.createScene = function() {
             this.trains.push(currentTrain);
             currentTrain.init(length, i);
 
-            trainSprite = new THREE.Sprite(i === 0 && track === 0 ? trainMatSelected : trainMat);
+            trainSprite = new THREE.Sprite(i === 0 && track === 0 ?  this.trainMatSelected : this.defaultTrainMat);
             this.trainSprites.push(trainSprite);
             this.trackGroups[track].add(trainSprite);
             pos = this.tubes[track].parameters.path.getPointAt(0);
@@ -182,8 +192,46 @@ RailApp.prototype.changeView = function(viewName) {
         console.log("No camera view name!");
         return;
     }
-    this.cameraView = viewName;
-    this.setCamera(cameraViews[this.cameraView]);
+
+    viewName === 'next' ? ++this.cameraView : --this.cameraView;
+
+    if(this.cameraView >= viewOrder.length) this.cameraView = 0;
+    if(this.cameraView < 0) this.cameraView = viewOrder.length - 1;
+
+    var camView = cameraViews[this.trackView];
+    this.setCamera(camView[viewOrder[this.cameraView]]);
+};
+
+RailApp.prototype.changeTrack = function(track) {
+    if(track === undefined) {
+        console.log("No track selected!");
+        return;
+    }
+
+    if(track != this.trackView) {
+        $('#track' + track).addClass('active');
+        $('#track' + this.trackView).removeClass('active');
+        var camView = cameraViews[track];
+        this.setCamera(camView[viewOrder[this.cameraView]]);
+    }
+    this.trackView = track;
+};
+
+RailApp.prototype.selectTrain = function(train) {
+    if(train === undefined) {
+        console.log("No train specified!");
+        return;
+    }
+    var trainTxt = train.slice(-1);
+    var train = parseInt(trainTxt, 10);
+    if(isNaN(train)) {
+        console.log("Invalid train number");
+        return;
+    }
+    $('#trainID').html("00" + train);
+    this.trainSprites[--train].material = this.trainMatSelected;
+    this.trainSprites[this.currentTrain].material = this.defaultTrainMat;
+    this.currentTrain = train;
 };
 
 RailApp.prototype.startStopAnimation = function() {
@@ -191,8 +239,7 @@ RailApp.prototype.startStopAnimation = function() {
     $('#startStop').html(this.running ? "Stop" : "Start");
 };
 
-RailApp.prototype.reset = function() {
-    //Reset everything
+RailApp.prototype.reset = function() { //Reset everything
     //Camera
     this.controls.reset();
     this.camera.position.set(0, 155, 450 );
@@ -225,13 +272,6 @@ RailApp.prototype.reset = function() {
     this.renderer.render( this.scene, this.camera );
 };
 
-RailApp.prototype.rotateTrackLeft = function() {
-    this.railGroup.rotation.y += ROT_INC;
-};
-
-RailApp.prototype.rotateTrackRight = function() {
-    this.railGroup.rotation.y -= ROT_INC;
-};
 
 RailApp.prototype.createGUI = function() {
     this.guiControls = new function () {
@@ -260,6 +300,14 @@ $(document).ready(function() {
         app.reset();
     });
 
+    $('#track0').on("click", function() {
+        app.changeTrack(0);
+    });
+
+    $('#track1').on("click", function() {
+        app.changeTrack(1);
+    });
+
     $('#nextView').on("click", function() {
         app.changeView('next');
     });
@@ -268,9 +316,9 @@ $(document).ready(function() {
         app.changeView('previous');
     });
 
-    $('#trainSelect').on('hidden.bs.dropdown', function () {
+    $('.dropdown-menu li a').on('click', function () {
         // do something…
-        console.log("Fired");
+        app.selectTrain($(this).text());
     });
 
     app.run();
