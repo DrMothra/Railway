@@ -44,6 +44,8 @@ RailApp.prototype.init = function(container) {
     this.tempPos = new THREE.Vector3();
     this.posOffset = new THREE.Vector3(0, this.trainHeight, 0);
     this.currentTrain = 0;
+    this.trains = [];
+    this.trainsStopped = 0;
 };
 
 RailApp.prototype.update = function() {
@@ -64,7 +66,13 @@ RailApp.prototype.update = function() {
                 this.ghostSprites[i].position.set(this.tempPos.x, this.tempPos.y, this.tempPos.z);
 
                 if(train.passedStop()) {
-                    train.gotoNextStop();
+                    if(!train.gotoNextStop()) {
+                        //Need to take ghosts into account too
+                        if(++this.trainsStopped >= (NUM_TRAINS_PER_TRACK * 2)) {
+                            //console.log("All trains stopped");
+                            this.reset();
+                        }
+                    }
                 }
             }
         }
@@ -150,12 +158,12 @@ RailApp.prototype.createScene = function() {
 
     //Set up trains
     var length = this.tubes[0].parameters.path.getLength();
-    this.trains = [];
+
     //Train materials
     this.defaultTrainMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex} );
     this.trainMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex} );
-    var ghostMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex, opacity: 0.5});
-    var ghostMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex, opacity: 0.5});
+    this.defaultGhostMat = new THREE.SpriteMaterial( {color: 0x000000, map: trainTex, opacity: 0.5});
+    this.ghostMatSelected = new THREE.SpriteMaterial( {color: 0xd9df18, map: trainTex, opacity: 0.5});
     this.trainSprites = [];
     this.ghostSprites = [];
     var currentTrain, trainSprite, ghostSprite;
@@ -172,7 +180,7 @@ RailApp.prototype.createScene = function() {
             trainSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
             trainSprite.scale.set(10, 10, 1);
 
-            ghostSprite = new THREE.Sprite(i === 0 && track === 0 ? ghostMatSelected : ghostMat);
+            ghostSprite = new THREE.Sprite(i === 0 && track === 0 ? this.ghostMatSelected : this.defaultGhostMat);
             this.ghostSprites.push(ghostSprite);
             this.trackGroups[track].add(ghostSprite);
             ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
@@ -231,6 +239,8 @@ RailApp.prototype.selectTrain = function(train) {
     $('#trainID').html("00" + train);
     this.trainSprites[--train].material = this.trainMatSelected;
     this.trainSprites[this.currentTrain].material = this.defaultTrainMat;
+    this.ghostSprites[train].material = this.ghostMatSelected;
+    this.ghostSprites[this.currentTrain].material = this.defaultGhostMat;
     this.currentTrain = train;
 };
 
@@ -239,33 +249,32 @@ RailApp.prototype.startStopAnimation = function() {
     $('#startStop').html(this.running ? "Stop" : "Start");
 };
 
-RailApp.prototype.reset = function() { //Reset everything
-    //Camera
-    this.controls.reset();
-    this.camera.position.set(0, 155, 450 );
-    var lookAt = new THREE.Vector3(0, 0, 0);
-    this.controls.setLookAt(lookAt);
+RailApp.prototype.reset = function() {
+    //Reset everything
 
     //Animations
     this.running = false;
     $('#startStop').html("Start");
+    this.trainsStopped = 0;
 
     //Output
-    $('#hours').html("00");
-    $('#minutes').html("00");
-
-    //Train parameters
-
-    this.realTimeToNextStop = this.data[this.currentStop+1].time;
-    $('#delay').html(this.data[this.currentStop].delay);
-    var delay = this.data[this.currentStop+1].delay - this.data[this.currentStop].delay + this.interStopTime;
-    this.delayTime = this.data[this.currentStop].delay;
-    this.delayTimeInc = delay/this.interStopTime;
+    //$('#hours').html("00");
+    //$('#minutes').html("00");
 
     //Train positions
-    var pos = this.tubes[0].parameters.path.getPointAt( 0 );
-    this.engineSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
-    this.ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z+this.trackOffset);
+    var track, i, trainNumber = 0;
+    var pos = new THREE.Vector3();
+    //Set up trains
+    var length = this.tubes[0].parameters.path.getLength();
+    for(track=0; track<NUM_TRACKS; ++track) {
+        for (i = 0; i < NUM_TRAINS_PER_TRACK; ++i) {
+            pos = this.tubes[track].parameters.path.getPointAt(0);
+            this.trainSprites[trainNumber].position.set(pos.x, pos.y+this.trainHeight, pos.z);
+            this.ghostSprites[trainNumber].position.set(pos.x, pos.y+this.trainHeight, pos.z);
+            this.trains[trainNumber].init(length, i);
+            ++trainNumber;
+        }
+    }
 
 
     //Redraw

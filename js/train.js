@@ -27,6 +27,10 @@ function Train() {
 
 Train.prototype = {
     init: function(trackLength, id) {
+        this.currentStop = 0;
+        this.currentTime = 0;
+        this.animating = false;
+
         this.numStops = this.trainRoute.routeData.length;
         this.startTime = id * 5;
         this.tripTime = this.trainRoute.routeData[this.numStops-1].time - this.trainRoute.routeData[0].time;
@@ -38,6 +42,7 @@ Train.prototype = {
         this.timeToNextStop = this.interStopTime;
         this.realTimeToNextStop = this.trainRoute.routeData[this.currentStop+1].time;
         this.realTimeInc = this.realTimeToNextStop / this.interStopTime;
+
 
         //Ghost engine
         var delay = this.trainRoute.routeData[this.currentStop+1].delay - this.trainRoute.routeData[this.currentStop].delay + this.interStopTime;
@@ -86,6 +91,8 @@ Train.prototype = {
             var delay = this.trainRoute.routeData[this.currentStop+1].delay - this.trainRoute.routeData[this.currentStop].delay + this.interStopTime;
             this.delayTimeInc = delay/this.interStopTime;
         }
+
+        return this.animating;
     },
 
     update: function(delta) {
