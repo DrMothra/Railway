@@ -70,6 +70,10 @@ Train.prototype = {
         return this.delayTime;
     },
 
+    getStartTime: function() {
+        return this.startTime;
+    },
+
     getCurrentTime: function() {
         return this.currentTime;
     },
@@ -116,10 +120,18 @@ Train.prototype = {
         return this.tripTime;
     },
 
+    getTripDelay: function() {
+        return this.trainRoute.routeData[this.currentStop].delay;
+    },
+
     getCurrentStop: function() {
         return this.currentStop;
     },
-    
+
+    running: function() {
+        return this.animating;
+    },
+
     reset: function() {
         this.animating = false;
         this.currentTime = 0;

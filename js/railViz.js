@@ -65,6 +65,12 @@ RailApp.prototype.update = function() {
                 this.tempPos.add(this.posOffset);
                 this.ghostSprites[i].position.set(this.tempPos.x, this.tempPos.y, this.tempPos.z);
 
+                //Update info
+                if(this.currentTrain === i) {
+                    $('#minutes').html(Math.round(train.getCurrentTime() + train.getStartTime()));
+                    $('#delay').html(train.getTripDelay());
+                }
+
                 if(train.passedStop()) {
                     if(!train.gotoNextStop()) {
                         //Need to take ghosts into account too
@@ -242,6 +248,9 @@ RailApp.prototype.selectTrain = function(train) {
     this.ghostSprites[train].material = this.ghostMatSelected;
     this.ghostSprites[this.currentTrain].material = this.defaultGhostMat;
     this.currentTrain = train;
+    if(!this.trains[train].running()) {
+        $('#minutes').html(0);
+    }
 };
 
 RailApp.prototype.startStopAnimation = function() {
@@ -255,6 +264,8 @@ RailApp.prototype.reset = function() {
     //Animations
     this.running = false;
     $('#startStop').html("Start");
+    $('#minutes').html(0);
+    $('#delay').html(0);
     this.trainsStopped = 0;
 
     //Output
