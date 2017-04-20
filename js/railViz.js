@@ -90,14 +90,28 @@ RailApp.prototype.update = function() {
 RailApp.prototype.createScene = function() {
     BaseApp.prototype.createScene.call(this);
 
+    //Geometry parameters
+    let sceneConfig = {
+        groundWidth: 3000,
+        groundDepth: 3000,
+        groundSegments: 8,
+        groundColour: 0x1d701d,
+        labelScaleX: 70,
+        labelScaleY: 50,
+        pointerScale: 50,
+        trainScaleX: 15,
+        trainScaleY: 15
+    };
+
     var textureLoader = new THREE.TextureLoader();
     var pointTex = textureLoader.load("images/pin.png");
     var trainTex = textureLoader.load("images/engineWhite.png");
     
     //Ground plane
-    var groundWidth = 1000, groundDepth = 2000, i;
-    var planeGeom = new THREE.PlaneBufferGeometry(groundWidth, groundDepth, 8, 8);
-    var planeMat = new THREE.MeshLambertMaterial( {color: 0x1d701d});
+    let i;
+    var planeGeom = new THREE.PlaneBufferGeometry(sceneConfig.groundWidth, sceneConfig.groundDepth,
+        sceneConfig.groundSegments, sceneConfig.groundSegments);
+    var planeMat = new THREE.MeshLambertMaterial( {color: sceneConfig.groundColour});
     var plane = new THREE.Mesh(planeGeom, planeMat);
     plane.rotation.x = -Math.PI/2;
     this.scene.add(plane);
@@ -134,7 +148,7 @@ RailApp.prototype.createScene = function() {
     }
     this.trackGroups[1].rotation.y = Math.PI/2;
     
-    this.pinHeight = 20;
+    this.pinHeight = 30;
 
     //this.railGroup = new THREE.Object3D();
     //this.railGroup.name = "railway";
@@ -143,7 +157,7 @@ RailApp.prototype.createScene = function() {
     var numPointers = trainRoute.routeData.length;
 
     this.pointerSprites = [];
-    var labelPos = new THREE.Vector3(), labelScale = new THREE.Vector3(30, 30, 1);
+    var labelPos = new THREE.Vector3(), labelScale = new THREE.Vector3(sceneConfig.labelScaleX, sceneConfig.labelScaleY, 1);
     var pos = new THREE.Vector3();
     var label;
     //Need to do for each track
@@ -153,10 +167,10 @@ RailApp.prototype.createScene = function() {
             pointerSprite = new THREE.Sprite(pointMat);
             this.pointerSprites.push(pointerSprite);
             this.trackGroups[track].add(pointerSprite);
-            pointerSprite.scale.set(30, 30, 1);
+            pointerSprite.scale.set(sceneConfig.pointerScale, sceneConfig.pointerScale, 1);
             pos = this.tubes[track].parameters.path.getPointAt( i/numPointers );
             pointerSprite.position.set(pos.x, pos.y+this.pinHeight, pos.z);
-            labelPos.set(pointerSprite.position.x, 30, pointerSprite.position.z);
+            labelPos.set(pointerSprite.position.x, 50, pointerSprite.position.z);
             label = spriteManager.create(trainRoute.routeData[i].stationName, labelPos, labelScale, 32, 1, true, false);
             this.trackGroups[track].add(label);
         }
@@ -184,13 +198,13 @@ RailApp.prototype.createScene = function() {
             this.trackGroups[track].add(trainSprite);
             pos = this.tubes[track].parameters.path.getPointAt(0);
             trainSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
-            trainSprite.scale.set(10, 10, 1);
+            trainSprite.scale.set(sceneConfig.trainScaleX, sceneConfig.trainScaleY, 1);
 
             ghostSprite = new THREE.Sprite(i === 0 && track === 0 ? this.ghostMatSelected : this.defaultGhostMat);
             this.ghostSprites.push(ghostSprite);
             this.trackGroups[track].add(ghostSprite);
             ghostSprite.position.set(pos.x, pos.y+this.trainHeight, pos.z);
-            ghostSprite.scale.set(10, 10, 1);
+            ghostSprite.scale.set(sceneConfig.trainScaleX, sceneConfig.trainScaleY, 1);
         }
     }
 

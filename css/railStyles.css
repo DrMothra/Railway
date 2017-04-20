@@ -1,4 +1,10 @@
 /* Styles for railway visualisations */
+#WebGL-output {
+    /* set margin to 0 and overflow to hidden, to go fullscreen */
+    margin: 0;
+    overflow: hidden;
+}
+
 @font-face {
     font-family: 'bpdotsregular';
     src: url('../font/BPdots-webfont.eot');
